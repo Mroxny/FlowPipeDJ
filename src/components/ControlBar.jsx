@@ -5,6 +5,7 @@ const ControlBar = ({
   activeDeck, 
   isCrossfading, 
   isPlaying,
+  isPlayPauseFading,
   progressA, // { current, duration }
   progressB, // { current, duration }
   onManualTransition,
@@ -77,13 +78,15 @@ const ControlBar = ({
         <div className="flex items-center gap-6 md:gap-8">
           <button 
             onClick={onTogglePlay}
-            className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
+            disabled={isPlayPauseFading}
+            className={`w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 ${isPlayPauseFading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-1" />}
           </button>
 
           <button 
             onClick={onManualTransition}
+            disabled={isCrossfading}
             className="group relative flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-white/10 transition-all hover:scale-110 active:scale-95 cursor-pointer outline-none"
             title="Wymuś przejście"
           >
@@ -98,6 +101,8 @@ const ControlBar = ({
         <div className="hidden md:block w-32 text-[10px] font-mono text-gray-500 tracking-widest uppercase text-right">
           {isCrossfading ? (
             <span className="text-green-400 animate-pulse font-bold">MIKSOWANIE...</span>
+          ) : isPlayPauseFading ? (
+            <span className="text-yellow-400 animate-pulse font-bold">FADING...</span>
           ) : (
             <span>NASTĘPNY GOTOWY</span>
           )}

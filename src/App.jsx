@@ -7,6 +7,7 @@ import { DEMO_PLAYLIST } from './data/mockPlaylist';
 
 const CF_DURATION = 8000;
 const CF_TRIGGER_SEC = 10;
+const PLAY_PAUSE_FADE_MS = 1000;
 
 const App = () => {
   const [playlist, setPlaylist] = useState(DEMO_PLAYLIST);
@@ -16,6 +17,7 @@ const App = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeDeck, setActiveDeck] = useState('A');
   const [isCrossfading, setIsCrossfading] = useState(false);
+  const [isPlayPauseFading, setIsPlayPauseFading] = useState(false);
   const [startScreen, setStartScreen] = useState(true);
   
   const [progressA, setProgressA] = useState({ current: 0, duration: 0 });
@@ -26,6 +28,7 @@ const App = () => {
   const playerA = useRef(null);
   const playerB = useRef(null);
   const fadeInterval = useRef(null);
+  const playPauseInterval = useRef(null); 
 
   useEffect(() => {
     if (!window.YT) {
@@ -154,7 +157,7 @@ const App = () => {
   }, [playlist]);
 
   const triggerCrossfade = useCallback(() => {
-    if (isCrossfading) return;
+    if (isCrossfading || isPlayPauseFading) return;
     setIsCrossfading(true);
 
     const fadeOut = activeDeck === 'A' ? playerA.current : playerB.current;
@@ -187,6 +190,8 @@ const App = () => {
   }, [activeDeck, currentTrackIndex, playlist, isCrossfading, finalizeTransition]);
 
   const checkProgress = useCallback(() => {
+    if (isPlayPauseFading) return;
+
     if (playerA.current && playerA.current.getCurrentTime && playerA.current.getDuration) {
         try {
             const timeA = playerA.current.getCurrentTime();
@@ -223,15 +228,53 @@ const App = () => {
   }, [isPlaying, checkProgress]);
 
   const togglePlay = () => {
+    if (isCrossfading || isPlayPauseFading) return;
+
     const currentPlayer = activeDeck === 'A' ? playerA.current : playerB.current;
     if (!currentPlayer || !currentPlayer.getPlayerState) return;
 
+    setIsPlayPauseFading(true);
+
+    const steps = 20;
+    const stepTime = PLAY_PAUSE_FADE_MS / steps;
+
+    if (playPauseInterval.current) clearInterval(playPauseInterval.current);
+
     if (isPlaying) {
-      currentPlayer.pauseVideo();
-      setIsPlaying(false);
+      let vol = 100;
+      
+      playPauseInterval.current = setInterval(() => {
+        vol -= (100 / steps);
+        if (vol <= 0) {
+          vol = 0;
+          currentPlayer.setVolume(0);
+          currentPlayer.pauseVideo();
+          clearInterval(playPauseInterval.current);
+          setIsPlaying(false);
+          setIsPlayPauseFading(false);
+        } else {
+          currentPlayer.setVolume(vol);
+        }
+      }, stepTime);
+
     } else {
+      currentPlayer.setVolume(0);
       currentPlayer.playVideo();
       setIsPlaying(true);
+      
+      let vol = 0;
+
+      playPauseInterval.current = setInterval(() => {
+        vol += (100 / steps);
+        if (vol >= 100) {
+          vol = 100;
+          currentPlayer.setVolume(100);
+          clearInterval(playPauseInterval.current);
+          setIsPlayPauseFading(false);
+        } else {
+          currentPlayer.setVolume(vol);
+        }
+      }, stepTime);
     }
   };
 
@@ -314,6 +357,7 @@ const App = () => {
           activeDeck={activeDeck} 
           isCrossfading={isCrossfading}
           isPlaying={isPlaying}
+          isPlayPauseFading={isPlayPauseFading}
           progressA={progressA}
           progressB={progressB}
           onManualTransition={handleManualTransition}
