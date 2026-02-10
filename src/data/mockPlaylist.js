@@ -72,7 +72,6 @@ export const DEMO_PLAYLIST_IDS = [
   '3VizXab7XE0',
   'MssS3LGcJrs',
   '1i3kvoVKUjM',
-  '4bbmOdbYooQ',
   'UlCCg93okG0',
   'NeHUEgotaEo',
   '2CVzh3K29TQ',
