@@ -3,22 +3,30 @@ import { Play, Info, PanelRightOpen } from 'lucide-react';
 import PlayerDeck from './components/PlayerDeck';
 import ControlBar from './components/ControlBar';
 import PlaylistSidebar from './components/PlaylistSidebar';
-import { DEMO_PLAYLIST } from './data/mockPlaylist';
+import { DEMO_PLAYLIST_IDS } from './data/mockPlaylist';
 
 const CF_DURATION = 8000;
 const CF_TRIGGER_SEC = 10;
 const PLAY_PAUSE_FADE_MS = 600;
 
 const App = () => {
-  const [playlist, setPlaylist] = useState(DEMO_PLAYLIST);
-  const [originalPlaylist, setOriginalPlaylist] = useState(DEMO_PLAYLIST);
+  const [playlist, setPlaylist] = useState(() => 
+    DEMO_PLAYLIST_IDS.map(id => ({
+      id,
+      title: `YT ID: ${id}`,
+      artist: 'Ładowanie danych...',
+      duration: '--:--'
+    }))
+  );
+  
+  const [originalPlaylist, setOriginalPlaylist] = useState(playlist);
   
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeDeck, setActiveDeck] = useState('A');
   const [isCrossfading, setIsCrossfading] = useState(false);
   const [isPlayPauseFading, setIsPlayPauseFading] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false); // NOWY STAN
+  const [isMaximized, setIsMaximized] = useState(false);
   const [startScreen, setStartScreen] = useState(true);
   
   const [isAddingTrack, setIsAddingTrack] = useState(false);
@@ -32,6 +40,30 @@ const App = () => {
   const playerB = useRef(null);
   const fadeInterval = useRef(null);
   const playPauseInterval = useRef(null);
+
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      const updatedTracks = await Promise.all(playlist.map(async (track) => {
+        try {
+           const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${track.id}`);
+           const data = await response.json();
+           
+           if (data.title) {
+             return { ...track, title: data.title, artist: data.author_name };
+           }
+        } catch (e) {
+           console.error(`Błąd pobierania danych dla ID ${track.id}:`, e);
+        }
+        return track;
+      }));
+
+      setPlaylist(updatedTracks);
+      setOriginalPlaylist(updatedTracks);
+    };
+
+    fetchMetadata();
+  }, []); 
+
 
   useEffect(() => {
     if (!window.YT) {
@@ -355,7 +387,7 @@ const App = () => {
   return (
     <div className="flex h-screen w-full bg-[#030303] text-white font-sans overflow-hidden relative">
       {startScreen && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-md">
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
           <div className="text-center px-6 animate-fade-in">
             <h1 className="text-7xl font-bold mb-6 tracking-tighter bg-gradient-to-r from-green-400 to-emerald-700 bg-clip-text text-transparent">FlowPipeDJ</h1>
             <button onClick={startPlayback} className="px-10 py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all shadow-lg flex items-center gap-3 mx-auto">
@@ -370,7 +402,7 @@ const App = () => {
         </div>
       )}
 
-      {/* GŁÓWNY KONTENER UKŁADU */}
+      {/* MAIN CONTAINER */}
       <div className={`flex-1 relative flex flex-col h-full transition-all duration-300 ${isSidebarOpen ? 'mr-0 md:mr-[400px]' : 'mr-0'}`}>
         {!isSidebarOpen && !startScreen && (
           <button 
