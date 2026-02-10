@@ -1,0 +1,110 @@
+import React from 'react';
+import { Play, Pause, ArrowDown } from 'lucide-react';
+
+const ControlBar = ({ 
+  activeDeck, 
+  isCrossfading, 
+  isPlaying,
+  progressA, // { current, duration }
+  progressB, // { current, duration }
+  onManualTransition,
+  onTogglePlay,
+  onSeek // function(time, deckId)
+}) => {
+  
+  const formatTime = (time) => {
+    if (!time || isNaN(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const Timeline = ({ current, duration, onChange, positionClass, colorClass }) => (
+    <div className={`absolute left-0 right-0 h-1.5 group cursor-pointer z-50 ${positionClass}`}>
+      <div className="absolute inset-0 bg-white/10"></div>
+      <div 
+        className={`absolute top-0 left-0 h-full transition-all duration-200 ${colorClass}`} 
+        style={{ width: `${duration > 0 ? (current / duration) * 100 : 0}%` }}
+      >
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow shadow-black transition-opacity transform scale-150"></div>
+      </div>
+      <input 
+        type="range" 
+        min="0" 
+        max={duration || 100} 
+        value={current || 0} 
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        disabled={duration === 0}
+      />
+    </div>
+  );
+
+  return (
+    <div className="h-24 md:h-28 bg-[#0a0a0a] border-y border-white/5 flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+      
+      {/* TIMELINE DECK A */}
+      <Timeline 
+        current={progressA.current} 
+        duration={progressA.duration} 
+        onChange={(val) => onSeek(val, 'A')}
+        positionClass="top-0"
+        colorClass={activeDeck === 'A' ? 'bg-green-500' : 'bg-gray-500'}
+      />
+
+      {/* TIMELINE DECK B */}
+      <Timeline 
+        current={progressB.current} 
+        duration={progressB.duration} 
+        onChange={(val) => onSeek(val, 'B')}
+        positionClass="bottom-0"
+        colorClass={activeDeck === 'B' ? 'bg-green-500' : 'bg-gray-500'}
+      />
+
+      <div className="flex items-center justify-between px-8 h-full">
+        <div className="hidden md:flex flex-col text-xs font-mono text-gray-500 w-32">
+          <div className={`flex justify-between ${activeDeck === 'A' ? 'text-green-500 font-bold' : ''}`}>
+             <span>DECK A</span>
+             <span>{formatTime(progressA.current)}</span>
+          </div>
+          <div className={`flex justify-between ${activeDeck === 'B' ? 'text-green-500 font-bold' : ''} opacity-50`}>
+             <span>DECK B</span>
+             <span>{formatTime(progressB.current)}</span>
+          </div>
+        </div>
+
+        {/* Controlls */}
+        <div className="flex items-center gap-6 md:gap-8">
+          <button 
+            onClick={onTogglePlay}
+            className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
+          >
+            {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-1" />}
+          </button>
+
+          <button 
+            onClick={onManualTransition}
+            className="group relative flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-white/10 transition-all hover:scale-110 active:scale-95 cursor-pointer outline-none"
+            title="Wymuś przejście"
+          >
+            <div className={`absolute inset-0 rounded-full bg-green-500/20 blur-xl transition-opacity duration-500 ${isCrossfading ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-50'}`}></div>
+            <div className={`transition-transform duration-700 ease-in-out ${activeDeck === 'B' ? 'rotate-180' : 'rotate-0'}`}>
+              <ArrowDown className={`w-8 h-8 ${isCrossfading ? 'text-green-400' : 'text-white'}`} />
+            </div>
+          </button>
+        </div>
+
+        {/* Right side: Status */}
+        <div className="hidden md:block w-32 text-[10px] font-mono text-gray-500 tracking-widest uppercase text-right">
+          {isCrossfading ? (
+            <span className="text-green-400 animate-pulse font-bold">MIKSOWANIE...</span>
+          ) : (
+            <span>NASTĘPNY GOTOWY</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ControlBar;

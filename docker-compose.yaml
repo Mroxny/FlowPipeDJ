@@ -1,0 +1,9 @@
+services:
+  flowtube:
+    build: .
+    ports:
+      - "6969:80"
+    container_name: flowtube-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
