@@ -7,7 +7,7 @@ import { DEMO_PLAYLIST } from './data/mockPlaylist';
 
 const CF_DURATION = 8000;
 const CF_TRIGGER_SEC = 10;
-const PLAY_PAUSE_FADE_MS = 1000;
+const PLAY_PAUSE_FADE_MS = 600;
 
 const App = () => {
   const [playlist, setPlaylist] = useState(DEMO_PLAYLIST);
@@ -18,7 +18,10 @@ const App = () => {
   const [activeDeck, setActiveDeck] = useState('A');
   const [isCrossfading, setIsCrossfading] = useState(false);
   const [isPlayPauseFading, setIsPlayPauseFading] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false); // NOWY STAN
   const [startScreen, setStartScreen] = useState(true);
+  
+  const [isAddingTrack, setIsAddingTrack] = useState(false);
   
   const [progressA, setProgressA] = useState({ current: 0, duration: 0 });
   const [progressB, setProgressB] = useState({ current: 0, duration: 0 });
@@ -28,7 +31,7 @@ const App = () => {
   const playerA = useRef(null);
   const playerB = useRef(null);
   const fadeInterval = useRef(null);
-  const playPauseInterval = useRef(null); 
+  const playPauseInterval = useRef(null);
 
   useEffect(() => {
     if (!window.YT) {
@@ -41,6 +44,7 @@ const App = () => {
 
     return () => {
       if (fadeInterval.current) clearInterval(fadeInterval.current);
+      if (playPauseInterval.current) clearInterval(playPauseInterval.current);
     };
   }, []);
 
@@ -91,7 +95,6 @@ const App = () => {
     }
   };
 
-  // --- SHUFFLE LOGIC ---
   const handleShuffle = () => {
     if (isShuffled) {
       const currentTrack = playlist[currentTrackIndex];
@@ -119,10 +122,9 @@ const App = () => {
       setIsShuffled(true);
 
       updateNextTrackCue(shuffled, newIndex);
-    }
+    };
   };
 
-  // --- REORDER LOGIC (DRAG & DROP) ---
   const handleReorder = (newPlaylist) => {
     const currentTrack = playlist[currentTrackIndex];
     const newCurrentIndex = newPlaylist.findIndex(t => t.id === currentTrack.id);
@@ -187,7 +189,7 @@ const App = () => {
         finalizeTransition(nextDeckState, nextIndex, trackAfterNextIndex);
       }
     }, stepTime);
-  }, [activeDeck, currentTrackIndex, playlist, isCrossfading, finalizeTransition]);
+  }, [activeDeck, currentTrackIndex, playlist, isCrossfading, isPlayPauseFading, finalizeTransition]);
 
   const checkProgress = useCallback(() => {
     if (isPlayPauseFading) return;
@@ -213,19 +215,19 @@ const App = () => {
         try {
             const curr = activePlayer.getCurrentTime();
             const dur = activePlayer.getDuration();
-            if (!isCrossfading && dur > 0 && (dur - curr) < CF_TRIGGER_SEC) {
+            if (!isCrossfading && isPlaying && dur > 0 && (dur - curr) < CF_TRIGGER_SEC) {
                 triggerCrossfade();
             }
         } catch(e) {}
     }
 
-  }, [activeDeck, isCrossfading, triggerCrossfade]);
+  }, [activeDeck, isCrossfading, isPlaying, isPlayPauseFading, triggerCrossfade]);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying && !isPlayPauseFading) return;
     const loopId = setInterval(checkProgress, 500);
     return () => clearInterval(loopId);
-  }, [isPlaying, checkProgress]);
+  }, [isPlaying, isPlayPauseFading, checkProgress]);
 
   const togglePlay = () => {
     if (isCrossfading || isPlayPauseFading) return;
@@ -242,7 +244,6 @@ const App = () => {
 
     if (isPlaying) {
       let vol = 100;
-      
       playPauseInterval.current = setInterval(() => {
         vol -= (100 / steps);
         if (vol <= 0) {
@@ -256,14 +257,11 @@ const App = () => {
           currentPlayer.setVolume(vol);
         }
       }, stepTime);
-
     } else {
       currentPlayer.setVolume(0);
       currentPlayer.playVideo();
       setIsPlaying(true);
-      
       let vol = 0;
-
       playPauseInterval.current = setInterval(() => {
         vol += (100 / steps);
         if (vol >= 100) {
@@ -301,7 +299,10 @@ const App = () => {
     setActiveDeck('A');
     setIsCrossfading(false);
     setIsPlaying(true);
+    setIsPlayPauseFading(false);
+    
     if (fadeInterval.current) clearInterval(fadeInterval.current);
+    if (playPauseInterval.current) clearInterval(playPauseInterval.current);
 
     if (playerA.current) {
         playerA.current.loadVideoById(track.id);
@@ -316,11 +317,39 @@ const App = () => {
     setProgressB({ current: 0, duration: 0 });
   };
 
-  const handleAddTrack = (id) => {
-    const newTrack = { id: id, title: `YT ID: ${id}`, artist: 'Dodany Utwór', duration: '--:--' };
+  const handleAddTrack = async (input) => {
+    setIsAddingTrack(true);
+    let id = input;
+    const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = input.match(urlRegex);
+    
+    if (match && match[1]) {
+      id = match[1];
+    } else if (!/^[a-zA-Z0-9_-]{11}$/.test(input)) {
+        setIsAddingTrack(false);
+        return; 
+    }
+
+    let title = `YT ID: ${id}`;
+    let artist = 'Dodany Utwór';
+
+    try {
+        const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${id}`);
+        const data = await response.json();
+        
+        if (data.title) {
+            title = data.title;
+            artist = data.author_name;
+        }
+    } catch (e) {
+        console.error("Nie udało się pobrać tytułu:", e);
+    }
+
+    const newTrack = { id: id, title: title, artist: artist, duration: '--:--' };
     const newList = [...playlist, newTrack];
     setPlaylist(newList);
     if (!isShuffled) setOriginalPlaylist(newList);
+    setIsAddingTrack(false);
   };
 
   return (
@@ -341,6 +370,7 @@ const App = () => {
         </div>
       )}
 
+      {/* GŁÓWNY KONTENER UKŁADU */}
       <div className={`flex-1 relative flex flex-col h-full transition-all duration-300 ${isSidebarOpen ? 'mr-0 md:mr-[400px]' : 'mr-0'}`}>
         {!isSidebarOpen && !startScreen && (
           <button 
@@ -351,8 +381,16 @@ const App = () => {
           </button>
         )}
 
-        <PlayerDeck deckId="player-a" isActive={activeDeck === 'A'} trackInfo={activeDeck === 'A' ? playlist[currentTrackIndex] : null} />
+        {/* DECK A */}
+        <div className={`
+          ${isMaximized && activeDeck === 'B' ? 'hidden' : 'flex-1'}
+          order-1
+          relative w-full overflow-hidden
+        `}>
+          <PlayerDeck deckId="player-a" isActive={activeDeck === 'A'} trackInfo={activeDeck === 'A' ? playlist[currentTrackIndex] : null} />
+        </div>
         
+        {/* CONTROL BAR */}
         <ControlBar 
           activeDeck={activeDeck} 
           isCrossfading={isCrossfading}
@@ -363,9 +401,18 @@ const App = () => {
           onManualTransition={handleManualTransition}
           onTogglePlay={togglePlay}
           onSeek={handleSeek}
+          isMaximized={isMaximized}
+          onToggleMaximize={() => setIsMaximized(!isMaximized)}
         />
 
-        <PlayerDeck deckId="player-b" isActive={activeDeck === 'B'} trackInfo={activeDeck === 'B' ? playlist[currentTrackIndex] : null} />
+        {/* DECK B */}
+        <div className={`
+           ${isMaximized && activeDeck === 'A' ? 'hidden' : 'flex-1'}
+           order-3
+           relative w-full overflow-hidden
+        `}>
+           <PlayerDeck deckId="player-b" isActive={activeDeck === 'B'} trackInfo={activeDeck === 'B' ? playlist[currentTrackIndex] : null} />
+        </div>
       </div>
 
       <PlaylistSidebar 
@@ -378,6 +425,7 @@ const App = () => {
         onReorder={handleReorder}
         onShuffle={handleShuffle}
         isShuffled={isShuffled}
+        isAddingTrack={isAddingTrack}
       />
 
       <style>{`
@@ -388,6 +436,7 @@ const App = () => {
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fade-in 1s ease-out forwards; }
         .animate-fade-in-up { animation: fade-in 0.5s ease-out forwards; }
+        .cursor-wait { cursor: wait; }
       `}</style>
     </div>
   );

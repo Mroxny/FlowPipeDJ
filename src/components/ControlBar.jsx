@@ -1,16 +1,19 @@
 import React from 'react';
 import { Play, Pause, ArrowDown } from 'lucide-react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 
 const ControlBar = ({ 
   activeDeck, 
   isCrossfading, 
   isPlaying,
   isPlayPauseFading,
-  progressA, // { current, duration }
-  progressB, // { current, duration }
+  progressA, 
+  progressB, 
   onManualTransition,
   onTogglePlay,
-  onSeek // function(time, deckId)
+  onSeek,
+  isMaximized,     
+  onToggleMaximize 
 }) => {
   
   const formatTime = (time) => {
@@ -42,7 +45,12 @@ const ControlBar = ({
   );
 
   return (
-    <div className="h-24 md:h-28 bg-[#0a0a0a] border-y border-white/5 flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+    <div className={`
+      h-24 md:h-28 bg-[#0a0a0a] border-y border-white/5 flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)]
+      ${isMaximized && activeDeck === 'B' ? 'order-first border-t-0 border-b border-white/10' : ''}
+      ${isMaximized && activeDeck === 'A' ? 'order-last border-b-0 border-t border-white/10' : ''}
+      ${!isMaximized ? 'order-2' : ''}
+    `}>
       
       {/* TIMELINE DECK A */}
       <Timeline 
@@ -95,6 +103,15 @@ const ControlBar = ({
               <ArrowDown className={`w-8 h-8 ${isCrossfading ? 'text-green-400' : 'text-white'}`} />
             </div>
           </button>
+
+          {/* Maximize / Minimize */}
+          <button 
+            onClick={onToggleMaximize}
+            className="w-10 h-10 rounded-full bg-transparent hover:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all hover:scale-105"
+            title={isMaximized ? "Pokaż oba Decki" : "Tryb skupienia"}
+          >
+            {isMaximized ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
         </div>
 
         {/* Right side: Status */}
@@ -111,5 +128,4 @@ const ControlBar = ({
     </div>
   );
 };
-
 export default ControlBar;
