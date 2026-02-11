@@ -7,7 +7,7 @@ import { DEMO_PLAYLIST_IDS } from './data/mockPlaylist';
 
 const CF_DURATION = 8000;
 const CF_TRIGGER_SEC = 10;
-const PLAY_PAUSE_FADE_MS = 600;
+const PLAY_PAUSE_FADE_MS = 800;
 
 const App = () => {
   const [playlist, setPlaylist] = useState(() => 
