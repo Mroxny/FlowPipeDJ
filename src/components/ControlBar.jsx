@@ -12,8 +12,8 @@ const ControlBar = ({
   onManualTransition,
   onTogglePlay,
   onSeek,
-  isMaximized,     
-  onToggleMaximize 
+  isMaximized,
+  onToggleMaximize
 }) => {
   
   const formatTime = (time) => {
@@ -46,10 +46,10 @@ const ControlBar = ({
 
   return (
     <div className={`
-      h-24 md:h-28 bg-[#0a0a0a] border-y border-white/5 flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)]
-      ${isMaximized && activeDeck === 'B' ? 'order-first border-t-0 border-b border-white/10' : ''}
-      ${isMaximized && activeDeck === 'A' ? 'order-last border-b-0 border-t border-white/10' : ''}
-      ${!isMaximized ? 'order-2' : ''}
+      h-24 md:h-28 bg-[#0a0a0a] flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex-shrink-0 transition-all duration-500 ease-in-out
+      ${isMaximized && activeDeck === 'B' ? 'border-b border-white/10' : ''}
+      ${isMaximized && activeDeck === 'A' ? 'border-t border-white/10' : ''}
+      ${!isMaximized ? 'border-y border-white/5' : ''}
     `}>
       
       {/* TIMELINE DECK A */}
@@ -128,4 +128,5 @@ const ControlBar = ({
     </div>
   );
 };
+
 export default ControlBar;

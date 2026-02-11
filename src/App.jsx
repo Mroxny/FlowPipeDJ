@@ -384,7 +384,7 @@ const App = () => {
     setIsAddingTrack(false);
   };
 
-  return (
+   return (
     <div className="flex h-screen w-full bg-[#030303] text-white font-sans overflow-hidden relative">
       {startScreen && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
@@ -403,7 +403,7 @@ const App = () => {
       )}
 
       {/* MAIN CONTAINER */}
-      <div className={`flex-1 relative flex flex-col h-full transition-all duration-300 ${isSidebarOpen ? 'mr-0 md:mr-[400px]' : 'mr-0'}`}>
+      <div className={`flex-1 relative flex flex-col h-full transition-all duration-500 ease-in-out ${isSidebarOpen ? 'mr-0 md:mr-[400px]' : 'mr-0'}`}>
         {!isSidebarOpen && !startScreen && (
           <button 
             onClick={() => setIsSidebarOpen(true)}
@@ -415,9 +415,8 @@ const App = () => {
 
         {/* DECK A */}
         <div className={`
-          ${isMaximized && activeDeck === 'B' ? 'hidden' : 'flex-1'}
-          order-1
-          relative w-full overflow-hidden
+          relative w-full overflow-hidden transition-all duration-500 ease-in-out
+          ${isMaximized && activeDeck === 'B' ? 'flex-[0_0_0px]' : 'flex-1'}
         `}>
           <PlayerDeck deckId="player-a" isActive={activeDeck === 'A'} trackInfo={activeDeck === 'A' ? playlist[currentTrackIndex] : null} />
         </div>
@@ -439,9 +438,8 @@ const App = () => {
 
         {/* DECK B */}
         <div className={`
-           ${isMaximized && activeDeck === 'A' ? 'hidden' : 'flex-1'}
-           order-3
-           relative w-full overflow-hidden
+           relative w-full overflow-hidden transition-all duration-500 ease-in-out
+           ${isMaximized && activeDeck === 'A' ? 'flex-[0_0_0px]' : 'flex-1'}
         `}>
            <PlayerDeck deckId="player-b" isActive={activeDeck === 'B'} trackInfo={activeDeck === 'B' ? playlist[currentTrackIndex] : null} />
         </div>
@@ -469,9 +467,19 @@ const App = () => {
         .animate-fade-in { animation: fade-in 1s ease-out forwards; }
         .animate-fade-in-up { animation: fade-in 0.5s ease-out forwards; }
         .cursor-wait { cursor: wait; }
+
+        /* AGRESYWNE STYLE DLA YOUTUBE IFRAME */
+        /* To wymusza, by iframe zawsze zajmował pełny kontener rodzica */
+        iframe {
+           width: 100% !important;
+           height: 100% !important;
+           position: absolute;
+           top: 0;
+           left: 0;
+           border: 0;
+        }
       `}</style>
     </div>
   );
 };
-
 export default App;
