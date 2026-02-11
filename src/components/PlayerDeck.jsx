@@ -4,16 +4,12 @@ const PlayerDeck = ({ deckId, isActive, trackInfo }) => {
   return (
     <div className={`relative w-full h-full transition-all duration-1000 ease-in-out overflow-hidden ${isActive ? 'opacity-100' : 'opacity-40 grayscale-[60%]'}`}>
       
-      {/* Kontener wideo z wymuszonymi stylami dla iframe */}
       <div className="absolute inset-0 w-full h-full bg-black overflow-hidden pointer-events-none">
-        {/* Wrapper do skalowania (zoom) */}
         <div className="w-full h-full transform scale-125 origin-center">
-            {/* Klasa deck-frame posłuży do celowania w iframe przez CSS */}
             <div id={deckId} className="deck-frame w-full h-full"></div>
         </div>
       </div>
       
-      {/* Overlay gradientowy i tekst */}
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
       
       {isActive && trackInfo && (
