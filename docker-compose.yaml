@@ -1,9 +1,9 @@
 services:
-  flowtube:
+  flowpipedj:
     build: .
     ports:
       - "6969:80"
-    container_name: flowtube-app
+    container_name: flowpipedj-app
     restart: unless-stopped
     environment:
       - NODE_ENV=production
