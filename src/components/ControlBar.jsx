@@ -46,7 +46,7 @@ const ControlBar = ({
 
   return (
     <div className={`
-      h-24 md:h-28 bg-[#0a0a0a] flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex-shrink-0 transition-all duration-500 ease-in-out
+      h-20 md:h-28 bg-[#0a0a0a] flex flex-col justify-center relative z-30 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex-shrink-0 transition-all duration-500 ease-in-out
       ${isMaximized && activeDeck === 'B' ? 'border-b border-white/10' : ''}
       ${isMaximized && activeDeck === 'A' ? 'border-t border-white/10' : ''}
       ${!isMaximized ? 'border-y border-white/5' : ''}
@@ -70,7 +70,8 @@ const ControlBar = ({
         colorClass={activeDeck === 'B' ? 'bg-green-500' : 'bg-gray-500'}
       />
 
-      <div className="flex items-center justify-between px-8 h-full">
+      <div className="flex items-center justify-center md:justify-between px-4 md:px-8 h-full">
+        
         <div className="hidden md:flex flex-col text-xs font-mono text-gray-500 w-32">
           <div className={`flex justify-between ${activeDeck === 'A' ? 'text-green-500 font-bold' : ''}`}>
              <span>DECK A</span>
@@ -83,34 +84,36 @@ const ControlBar = ({
         </div>
 
         {/* Controlls */}
-        <div className="flex items-center gap-6 md:gap-8">
+        <div className="flex items-center gap-5 md:gap-8">
+          
+          {/* Play / Pause */}
           <button 
             onClick={onTogglePlay}
             disabled={isPlayPauseFading}
-            className={`w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 ${isPlayPauseFading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 ${isPlayPauseFading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-1" />}
+            {isPlaying ? <Pause className="w-4 h-4 md:w-5 md:h-5 fill-white" /> : <Play className="w-4 h-4 md:w-5 md:h-5 fill-white ml-0.5" />}
           </button>
 
           <button 
             onClick={onManualTransition}
             disabled={isCrossfading}
-            className="group relative flex items-center justify-center w-16 h-16 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-white/10 transition-all hover:scale-110 active:scale-95 cursor-pointer outline-none"
+            className="group relative flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full bg-[#1a1a1a] hover:bg-[#2a2a2a] border border-white/10 transition-all hover:scale-110 active:scale-95 cursor-pointer outline-none"
             title="Wymuś przejście"
           >
             <div className={`absolute inset-0 rounded-full bg-green-500/20 blur-xl transition-opacity duration-500 ${isCrossfading ? 'opacity-100 animate-pulse' : 'opacity-0 group-hover:opacity-50'}`}></div>
             <div className={`transition-transform duration-700 ease-in-out ${activeDeck === 'B' ? 'rotate-180' : 'rotate-0'}`}>
-              <ArrowDown className={`w-8 h-8 ${isCrossfading ? 'text-green-400' : 'text-white'}`} />
+              <ArrowDown className={`w-6 h-6 md:w-8 md:h-8 ${isCrossfading ? 'text-green-400' : 'text-white'}`} />
             </div>
           </button>
 
           {/* Maximize / Minimize */}
           <button 
             onClick={onToggleMaximize}
-            className="w-10 h-10 rounded-full bg-transparent hover:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all hover:scale-105"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-transparent hover:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white transition-all hover:scale-105"
             title={isMaximized ? "Pokaż oba Decki" : "Tryb skupienia"}
           >
-            {isMaximized ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            {isMaximized ? <Minimize2 className="w-4 h-4 md:w-5 md:h-5" /> : <Maximize2 className="w-4 h-4 md:w-5 md:h-5" />}
           </button>
         </div>
 

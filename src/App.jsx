@@ -385,13 +385,13 @@ const App = () => {
   };
 
    return (
-    <div className="flex h-screen w-full bg-[#030303] text-white font-sans overflow-hidden relative">
+    <div className="flex h-[100dvh] w-full bg-[#030303] text-white font-sans overflow-hidden relative">
       {startScreen && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
           <div className="text-center px-6 animate-fade-in">
-            <h1 className="text-7xl font-bold mb-6 tracking-tighter bg-gradient-to-r from-green-400 to-emerald-700 bg-clip-text text-transparent">FlowPipeDJ</h1>
-            <button onClick={startPlayback} className="px-10 py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all shadow-lg flex items-center gap-3 mx-auto">
-              <Play className="w-5 h-5 fill-black" />
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tighter bg-gradient-to-r from-green-400 to-emerald-700 bg-clip-text text-transparent">FlowPipeDJ</h1>
+            <button onClick={startPlayback} className="px-8 py-3 md:px-10 md:py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all shadow-lg flex items-center gap-3 mx-auto">
+              <Play className="w-4 h-4 md:w-5 md:h-5 fill-black" />
               ROZPOCZNIJ SESJĘ
             </button>
             <div className="mt-8 flex gap-2 justify-center text-sm text-gray-500">
@@ -407,9 +407,9 @@ const App = () => {
         {!isSidebarOpen && !startScreen && (
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="absolute top-6 right-6 z-40 p-2 bg-black/50 hover:bg-black/80 rounded-full border border-white/10 transition-all text-gray-300 hover:text-white"
+            className="absolute top-4 right-4 md:top-6 md:right-6 z-40 p-2 bg-black/50 hover:bg-black/80 rounded-full border border-white/10 transition-all text-gray-300 hover:text-white"
           >
-            <PanelRightOpen className="w-6 h-6" />
+            <PanelRightOpen className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         )}
 
@@ -468,8 +468,6 @@ const App = () => {
         .animate-fade-in-up { animation: fade-in 0.5s ease-out forwards; }
         .cursor-wait { cursor: wait; }
 
-        /* AGRESYWNE STYLE DLA YOUTUBE IFRAME */
-        /* To wymusza, by iframe zawsze zajmował pełny kontener rodzica */
         iframe {
            width: 100% !important;
            height: 100% !important;
