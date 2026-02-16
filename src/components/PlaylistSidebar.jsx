@@ -150,7 +150,7 @@ const PlaylistSidebar = ({
         
         <div className="mt-8 mx-4 mb-8 p-6 border border-dashed border-white/10 rounded-xl text-center hover:border-white/20 transition-colors bg-white/[0.02]">
           <p className="text-xs text-gray-400 mb-3 font-medium">
-            {isAddingTrack ? 'POBIERANIE DANYCH...' : 'DODAJ LINK, PLAYLISTĘ LUB ID'}
+            {isAddingTrack ? 'POBIERANIE DANYCH...' : 'DODAJ LINK LUB ID'}
           </p>
           <input 
             type="text" 
