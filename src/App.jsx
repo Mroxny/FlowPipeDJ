@@ -1,22 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Info, PanelRightOpen } from 'lucide-react';
+import { Play, ArrowRight, PanelRightOpen, Loader2, Check, Info } from 'lucide-react';
 import PlayerDeck from './components/PlayerDeck';
 import ControlBar from './components/ControlBar';
 import PlaylistSidebar from './components/PlaylistSidebar';
-import { DEMO_PLAYLIST_IDS } from './data/mockPlaylist';
+import { DEMO_PLAYLIST } from './data/mockPlaylist';
 
 const CF_DURATION = 8000;
 const CF_TRIGGER_SEC = 10;
 const PLAY_PAUSE_FADE_MS = 800;
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+// const YOUTUBE_API_KEY = ''; 
 
 const App = () => {
   const [playlist, setPlaylist] = useState(() => 
-    DEMO_PLAYLIST_IDS.map(id => ({
-      id,
-      title: `YT ID: ${id}`,
-      artist: 'Ładowanie danych...',
-      duration: '--:--'
-    }))
+    DEMO_PLAYLIST.map(urlOrId => {
+      const match = urlOrId.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      const id = match ? match[1] : urlOrId;
+
+      return {
+        id,
+        title: `YT ID: ${id}`,
+        artist: 'Ładowanie danych...',
+        duration: '--:--'
+      };
+    })
   );
   
   const [originalPlaylist, setOriginalPlaylist] = useState(playlist);
@@ -30,6 +37,10 @@ const App = () => {
   const [startScreen, setStartScreen] = useState(true);
   
   const [isAddingTrack, setIsAddingTrack] = useState(false);
+  
+  const [startPlaylistUrl, setStartPlaylistUrl] = useState('');
+  const [isLoadingPlaylist, setIsLoadingPlaylist] = useState(false);
+  const [playlistStatus, setPlaylistStatus] = useState('idle'); // 'idle', 'success', 'error', 'no_key'
   
   const [progressA, setProgressA] = useState({ current: 0, duration: 0 });
   const [progressB, setProgressB] = useState({ current: 0, duration: 0 });
@@ -64,6 +75,18 @@ const App = () => {
     fetchMetadata();
   }, []); 
 
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   useEffect(() => {
     if (!window.YT) {
@@ -95,6 +118,108 @@ const App = () => {
 
     playerA.current = createPlayer('player-a', 'A');
     playerB.current = createPlayer('player-b', 'B');
+  };
+
+  const handleLoadStartPlaylist = async () => {
+    if (!startPlaylistUrl) return;
+    
+    if (!YOUTUBE_API_KEY) {
+        console.error("Brak klucza API YouTube! Ustaw VITE_YOUTUBE_API_KEY w .env (lub w kodzie)");
+        setPlaylistStatus('no_key');
+        return;
+    }
+
+    setIsLoadingPlaylist(true);
+    setPlaylistStatus('idle');
+
+    const playlistRegex = /[?&]list=([^#\&\?]+)/;
+    const playlistMatch = startPlaylistUrl.match(playlistRegex);
+
+    if (playlistMatch && playlistMatch[1]) {
+        const playlistId = playlistMatch[1];
+        try {
+            let allItems = [];
+            let nextPageToken = '';
+            const maxTotal = 500;
+
+            do {
+                const listUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${playlistId}&key=${YOUTUBE_API_KEY}&pageToken=${nextPageToken || ''}`;
+                const listResponse = await fetch(listUrl);
+                
+                if (!listResponse.ok) throw new Error('Błąd pobierania listy');
+                const listData = await listResponse.json();
+                
+                if (listData.items) {
+                    allItems = [...allItems, ...listData.items];
+                }
+                
+                nextPageToken = listData.nextPageToken;
+            } while (nextPageToken && allItems.length < maxTotal);
+
+            if (allItems.length > maxTotal) {
+                allItems = allItems.slice(0, maxTotal);
+            }
+
+            if (allItems.length > 0) {
+                const videoIds = allItems.map(item => item.contentDetails.videoId);
+                const videoDetailsMap = {};
+                
+                const chunks = [];
+                for (let i = 0; i < videoIds.length; i += 50) {
+                    chunks.push(videoIds.slice(i, i + 50).join(','));
+                }
+
+                await Promise.all(chunks.map(async (chunkIds) => {
+                    const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${chunkIds}&key=${YOUTUBE_API_KEY}`;
+                    const videosResponse = await fetch(videosUrl);
+                    if (videosResponse.ok) {
+                        const videosData = await videosResponse.json();
+                        videosData.items.forEach(v => {
+                            videoDetailsMap[v.id] = {
+                                channelTitle: v.snippet.channelTitle,
+                                title: v.snippet.title
+                            };
+                        });
+                    }
+                }));
+
+                const newTracks = allItems.map(item => {
+                    const vidId = item.contentDetails.videoId;
+                    const details = videoDetailsMap[vidId];
+                    
+                    const title = details ? details.title : item.snippet.title;
+                    const artistRaw = details ? details.channelTitle : (item.snippet.videoOwnerChannelTitle || 'Nieznany');
+
+                    if (title === 'Private video' || title === 'Deleted video') return null;
+
+                    let cleanTitle = title;
+                    let cleanArtist = artistRaw;
+
+                    return {
+                        id: vidId,
+                        title: cleanTitle,
+                        artist: cleanArtist,
+                    };
+                }).filter(t => t !== null);
+
+                if (newTracks.length > 0) {
+                    setPlaylist(newTracks);
+                    setOriginalPlaylist(newTracks);
+                    setPlaylistStatus('success');
+                } else {
+                    setPlaylistStatus('error');
+                }
+            } else {
+                setPlaylistStatus('error');
+            }
+        } catch (e) {
+            console.error("Błąd API YouTube:", e);
+            setPlaylistStatus('error');
+        }
+    } else {
+        setPlaylistStatus('error');
+    }
+    setIsLoadingPlaylist(false);
   };
 
   const startPlayback = () => {
@@ -388,19 +513,60 @@ const App = () => {
     <div className="flex h-[100dvh] w-full bg-[#030303] text-white font-sans overflow-hidden relative">
       {startScreen && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95">
-          <div className="text-center px-6 animate-fade-in">
+          <div className="text-center px-6 animate-fade-in w-full max-w-2xl">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tighter bg-gradient-to-r from-green-400 to-emerald-700 bg-clip-text text-transparent">FlowPipeDJ</h1>
-            <button onClick={startPlayback} className="px-8 py-3 md:px-10 md:py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all shadow-lg flex items-center gap-3 mx-auto">
+            <button onClick={startPlayback} className="px-8 py-3 md:px-10 md:py-4 bg-white text-black font-bold rounded-full hover:scale-105 transition-all shadow-lg flex items-center gap-3 mx-auto mb-12">
               <Play className="w-4 h-4 md:w-5 md:h-5 fill-black" />
               ROZPOCZNIJ SESJĘ
             </button>
-            <div className="mt-8 flex gap-2 justify-center text-sm text-gray-500">
-               <Info className="w-4 h-4 mt-0.5" />
-               <span>Wymagana interakcja, aby odblokować AudioContext.</span>
-            </div>
+            
+            {YOUTUBE_API_KEY ? (
+                <>
+                    <div className="w-full max-w-md mx-auto relative">
+                        <input 
+                            type="text" 
+                            placeholder="Opcjonalnie: Wklej link do playlisty YouTube"
+                            value={startPlaylistUrl}
+                            onChange={(e) => setStartPlaylistUrl(e.target.value)}
+                            className={`w-full bg-white/5 border ${playlistStatus === 'error' ? 'border-red-500' : playlistStatus === 'success' ? 'border-green-500' : playlistStatus === 'no_key' ? 'border-yellow-500' : 'border-white/10'} rounded-full px-5 py-3 text-sm text-white focus:outline-none focus:border-green-500 transition-all pr-12 placeholder-gray-500`}
+                            onKeyDown={(e) => e.key === 'Enter' && handleLoadStartPlaylist()}
+                        />
+                        <button 
+                            onClick={handleLoadStartPlaylist}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-full transition-colors"
+                            disabled={isLoadingPlaylist || !startPlaylistUrl}
+                        >
+                            {isLoadingPlaylist ? (
+                                <Loader2 className="w-4 h-4 text-white animate-spin" />
+                            ) : playlistStatus === 'success' ? (
+                                <Check className="w-4 h-4 text-green-500" />
+                            ) : playlistStatus === 'no_key' ? (
+                                <AlertCircle className="w-4 h-4 text-yellow-500" title="Brak klucza API" />
+                            ) : (
+                                <ArrowRight className="w-4 h-4 text-gray-400" />
+                            )}
+                        </button>
+                    </div>
+                    <div className="mt-8 flex gap-2 justify-center text-sm text-gray-500">
+                      <Info className="w-4 h-4 mt-0.5" />
+                      <span>Obsługa playlist do 500 utworów.</span>
+                    </div>
+                    
+                </>
+            ) : (
+                <div className="mt-8 p-4 border border-yellow-500/30 bg-yellow-500/10 rounded-lg max-w-md mx-auto">
+                    <div className="flex items-center gap-2 text-yellow-500 mb-2 justify-center">
+                        <Info className="w-4 h-4" />
+                        <span className="font-bold text-sm">Obsługa Playlist</span>
+                    </div>
+                    <div className="mt-8 flex gap-2 justify-center text-sm text-gray-500">
+                      <span>Aby importować całe playlisty, skonfiguruj klucz API YouTube w pliku .env (VITE_YOUTUBE_API_KEY).</span>
+                    </div>
+                </div>
+            )}
           </div>
         </div>
-      )}
+      )} 
 
       {/* MAIN CONTAINER */}
       <div className={`flex-1 relative flex flex-col h-full transition-all duration-500 ease-in-out ${isSidebarOpen ? 'mr-0 md:mr-[400px]' : 'mr-0'}`}>
