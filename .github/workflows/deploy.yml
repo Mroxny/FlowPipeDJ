@@ -27,6 +27,8 @@ jobs:
 
     - name: Build
       run: npm run build
+      env:
+        NODE_ENV: ${{ vars.NODE_ENV }}
 
     - name: Deploy via SFTP
       uses: wlixcc/SFTP-Deploy-Action@v1.2.4
